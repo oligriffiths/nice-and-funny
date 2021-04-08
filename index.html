@@ -1,0 +1,142 @@
+<html>
+    <head>
+        <title>Twitter Notes</title>
+        <style>
+            #container {
+                width: 550px;
+                margin: 30px auto;
+            }
+
+            button {
+                display: block;
+                width: 100%;
+                height: 30px;
+                margin-bottom: 10px;
+            }
+
+            #link {
+                display: none;
+            }
+
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <div id="controls">
+                <button id="next">MOAR!</button>
+            </div>
+
+            <div id="content">
+                <iframe id="tumblr" src="https://embed.tumblr.com/embed/post/3QWO3Ssarhy4O5SsLfxVRw/647929194246995968" width="100%" height="800px" frameborder="0"></iframe>
+                <div id="tweet"></div>
+            </div>
+            <div id="comment"></div>
+            <form id="link" action="">
+                <button type="submit">Open</button>
+            </form>
+        </div>
+
+    </body>
+
+    <script id="twitter-wjs" src="https://platform.twitter.com/widgets.js"></script>
+    <script>
+        // This code is shitty don't judge me
+
+        let content = [];
+        let currentItem;
+        async function nextElement() {
+            hideElements();
+
+            const nextContent = getRandomItem();
+            console.log(nextContent);
+
+            if (nextContent.twitter) {
+                await loadTweet(nextContent.url);
+            } else if (nextContent.tumblr) {
+                loadTumblr(nextContent.url);
+            } else {
+              await nextElement();
+              return;
+            }
+
+            loadComment(nextContent.comment);
+        }
+
+        function getRandomItem() {
+          const nextTweet = content[Math.floor(Math.random() * content.length)];
+
+          if (currentItem && currentItem.url === nextTweet.url) {
+            return getRandomItem();
+          }
+
+          return nextTweet;
+        }
+
+        async function loadTweets() {
+          const response = await fetch('/notes.txt');
+          const text = await response.text();
+          const lines = text.split("\n");
+          const items = [];
+
+          for (const line of lines) {
+            if (!line.trim()) {
+              continue;
+            }
+
+            const parts = line.split(' ');
+            const url = parts.shift();
+            items.push({
+              url: url,
+              twitter: !!url.match(/twitter/),
+              tumblr: !!url.match(/tumblr/),
+              comment: parts.join(' '),
+            });
+          }
+
+          return items;
+        }
+
+        function hideElements() {
+          document.getElementById('tumblr').style.display = 'none';
+          document.getElementById('tweet').style.display = 'none';
+        }
+
+        function loadTumblr(url) {
+          document.getElementById('tumblr').style.display = 'block';
+        }
+
+        async function loadTweet(url) {
+          const result = url.match(/https:\/\/twitter\.com\/[^\/]+\/status\/(\d+)/);
+          if (!result) {
+            return null;
+          }
+
+          // Clear existing content
+          document.getElementById('tweet').innerHTML = '';
+          document.getElementById('tweet').style.display = 'block';
+
+          const tweet = await twttr.widgets.createTweet(result[1], document.getElementById('tweet'));
+          if (!tweet) {
+            await nextElement();
+            return;
+          }
+
+          document.getElementById('link').setAttribute('href', url);
+        }
+
+        function loadComment(comment) {
+          document.getElementById('tweet').text = comment;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+
+            content = await loadTweets();
+            await nextElement();
+
+            document.getElementById('link').style.display = 'block';
+            document.getElementById('next').addEventListener('click', async () => {
+              await nextElement();
+            });
+        });
+    </script>
+</html>
