@@ -2,6 +2,10 @@
     <head>
         <title>Twitter Notes</title>
         <style>
+            body {
+                font-family: arial;
+            }
+
             #container {
                 width: 550px;
                 margin: 30px auto;
@@ -18,6 +22,21 @@
                 display: none;
             }
 
+            #tweet, #tumblr {
+                display: none;
+                overflow: auto;
+            }
+
+            #comment {
+                padding: 10px 0;
+                margin-bottom: 10px;
+            }
+
+            #loading {
+                text-align: center;
+                padding: 50px;
+            }
+
         </style>
     </head>
     <body>
@@ -27,7 +46,8 @@
             </div>
 
             <div id="content">
-                <iframe id="tumblr" src="https://embed.tumblr.com/embed/post/3QWO3Ssarhy4O5SsLfxVRw/647929194246995968" width="100%" height="800px" frameborder="0"></iframe>
+                <div id="loading">Loading...</div>
+                <iframe id="tumblr" width="100%" height="800px" frameborder="0"></iframe>
                 <div id="tweet"></div>
             </div>
             <div id="comment"></div>
@@ -72,8 +92,8 @@
           return nextTweet;
         }
 
-        async function loadTweets() {
-          const response = await fetch('/notes.txt');
+        async function fetchContent() {
+          const response = await fetch('notes.txt');
           const text = await response.text();
           const lines = text.split("\n");
           const items = [];
@@ -114,6 +134,7 @@
           // Clear existing content
           document.getElementById('tweet').innerHTML = '';
           document.getElementById('tweet').style.display = 'block';
+          showLoader();
 
           const tweet = await twttr.widgets.createTweet(result[1], document.getElementById('tweet'));
           if (!tweet) {
@@ -122,15 +143,24 @@
           }
 
           document.getElementById('link').setAttribute('href', url);
+          hideLoader();
         }
 
         function loadComment(comment) {
-          document.getElementById('tweet').text = comment;
+          document.getElementById('comment').innerText = comment;
+        }
+
+        function showLoader() {
+          document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoader() {
+          document.getElementById('loading').style.display = 'none';
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
 
-            content = await loadTweets();
+            content = await fetchContent();
             await nextElement();
 
             document.getElementById('link').style.display = 'block';
